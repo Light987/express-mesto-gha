@@ -1,5 +1,5 @@
-const User = require('../models/user');
 const httpConstants = require('http2').constants;
+const User = require('../models/user');
 
 const {
   HTTP_STATUS_BAD_REQUEST,
