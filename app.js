@@ -27,5 +27,6 @@ app.use((_, res) => {
 });
 
 app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`Приложение запускается с порта ${PORT}`);
 });
