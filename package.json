@@ -12,8 +12,8 @@
     "type": "git",
     "url": "git+https://github.com/Light987/express-mesto-gha.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["backend", "mesto"],
+  "author": "Kravchenko Denis",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Light987/express-mesto-gha/issues"

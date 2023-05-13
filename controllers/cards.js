@@ -1,12 +1,19 @@
 const Card = require('../models/card');
+const httpConstants = require('http2').constants;
+
+const {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+} = httpConstants;
 
 module.exports.findCards = (req, res) => {
   Card.find({})
     .then((card) => {
-      res.status(200).send(card);
+      res.send(card);
     })
     .catch(() => {
-      res.status(500).send({ message: 'Что-то пошло не так' });
+      res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
     });
 };
 
@@ -16,29 +23,29 @@ module.exports.createCard = (req, res) => {
 
   Card.create({ name, link, owner })
     .then((card) => {
-      res.status(200).send({ data: card });
+      res.send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
 
 module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
+        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Карточка не найдена' });
       } else if (card.owner.toString() === req.user._id) {
-        Card.deleteOne()
+        card.deleteOne()
           .then(() => {
-            res.status(200).send({ data: card });
+            res.send({ data: card });
           })
           .catch(() => {
-            res.status(500).send({ message: 'Что-то пошло не так' });
+            res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
           });
       } else {
         res.status(403).send({ message: 'Это не ваш пост' });
@@ -46,9 +53,9 @@ module.exports.deleteCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
@@ -61,16 +68,16 @@ module.exports.setLike = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
+        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Карточка не найдена' });
       } else {
-        res.status(200).send({ data: card });
+        res.send({ data: card });
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
@@ -83,16 +90,16 @@ module.exports.delLike = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
+        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Карточка не найдена' });
       } else {
-        res.status(200).send({ data: card });
+        res.send({ data: card });
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };

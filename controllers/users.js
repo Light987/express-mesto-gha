@@ -1,10 +1,17 @@
 const User = require('../models/user');
+const httpConstants = require('http2').constants;
+
+const {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+} = httpConstants;
 
 module.exports.findUsers = (req, res) => {
   User.find({})
     .then((user) => res.send({ data: user }))
     .catch(() => {
-      res.status(500).send({ message: 'Что-то пошло не так' });
+      res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
     });
 };
 
@@ -12,16 +19,16 @@ module.exports.findUserById = (req, res) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'Пользователь не найден' });
+        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Пользователь не найден' });
       } else {
-        res.status(200).send({ data: user });
+        res.send({ data: user });
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
@@ -35,13 +42,13 @@ module.exports.createUser = (req, res) => {
     avatar,
   })
     .then((user) => {
-      res.status(200).send({ data: user });
+      res.send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
@@ -59,16 +66,16 @@ module.exports.editUser = (req, res) => {
   )
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'Пользователь не найден' });
+        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Пользователь не найден' });
       } else {
-        res.status(200).send({ data: user });
+        res.send({ data: user });
       }
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
@@ -86,16 +93,16 @@ module.exports.editAvatar = (req, res) => {
   )
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'Пользователь не найден' });
+        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Пользователь не найден' });
       } else {
-        res.status(200).send({ data: user });
+        res.send({ data: user });
       }
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Были переданы неверные данные' });
+        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
       } else {
-        res.status(500).send({ message: 'Что-то пошло не так' });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
       }
     });
 };
