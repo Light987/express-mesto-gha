@@ -1,105 +1,87 @@
-const httpConstants = require('http2').constants;
 const Card = require('../models/card');
+const NotFound = require('../errors/NotFound');
+const BadRequest = require('../errors/BadRequest');
+const Forbidden = require('../errors/Forbidden');
 
-const {
-  HTTP_STATUS_BAD_REQUEST,
-  HTTP_STATUS_NOT_FOUND,
-  HTTP_STATUS_INTERNAL_SERVER_ERROR,
-} = httpConstants;
-
-module.exports.findCards = (req, res) => {
+module.exports.findCards = (req, res, next) => {
   Card.find({})
-    .then((card) => {
-      res.send(card);
-    })
-    .catch(() => {
-      res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
-    });
+    .then((cards) => res.send(cards))
+    .catch(next);
 };
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
-  const owner = req.user._id;
-
-  Card.create({ name, link, owner })
+  Card.create({ name, link, owner: req.user._id })
     .then((card) => {
-      res.send({ data: card });
+      res.status(201).send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
+        next(new BadRequest('Переданы неверные данные.'));
       } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
+        next(err);
       }
     });
 };
 
-module.exports.deleteCard = (req, res) => {
-  Card.findById(req.params.cardId)
+module.exports.deleteCard = (req, res, next) => {
+  const { cardId } = req.params;
+  Card.findById(cardId)
     .then((card) => {
       if (!card) {
-        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Карточка не найдена' });
-      } else if (card.owner.toString() === req.user._id) {
-        card.deleteOne()
-          .then(() => {
-            res.send({ data: card });
-          })
-          .catch(() => {
-            res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
-          });
-      } else {
-        res.status(403).send({ message: 'Это не ваш пост' });
+        throw new NotFound('Карточка с таким id не найдена.');
       }
+      if (req.user._id.toString() !== card.owner._id.toString()) {
+        throw new Forbidden('Нельзя удалить карточку другого пользователя!');
+      }
+      return card
+        .deleteOne()
+        .then(() => res.status(200).send({ message: 'Карточка удалена' }));
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
+        next(new BadRequest('Переданы неверные данные.'));
       } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
+        next(err);
       }
     });
 };
 
-module.exports.setLike = (req, res) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } },
-    { new: true },
-  )
-    .then((card) => {
-      if (!card) {
-        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Карточка не найдена' });
-      } else {
-        res.send({ data: card });
-      }
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
-      } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
-      }
-    });
-};
+module.exports.setLike = (req, res, next) => Card.findByIdAndUpdate(
+  req.params.cardId,
+  { $addToSet: { likes: req.user._id } },
+  { new: true },
+)
+  .then((card) => {
+    if (!card) {
+      throw new NotFound('Карточка с таким id не найдена.');
+    }
+    return res.send({ data: card });
+  })
+  .catch((err) => {
+    if (err.name === 'CastError') {
+      next(new BadRequest('Переданы неверные данные.'));
+    } else {
+      next(err);
+    }
+  });
 
-module.exports.delLike = (req, res) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: req.user._id } },
-    { new: true },
-  )
-    .then((card) => {
-      if (!card) {
-        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Карточка не найдена' });
-      } else {
-        res.send({ data: card });
-      }
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
-      } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
-      }
-    });
-};
+module.exports.delLike = (req, res, next) => Card.findByIdAndUpdate(
+  req.params.cardId,
+  { $pull: { likes: req.user._id } },
+  { new: true },
+)
+
+  .then((card) => {
+    if (!card) {
+      throw new NotFound('арточка с таким id не найдена.');
+    }
+    return res.send({ data: card });
+  })
+  .catch((err) => {
+    if (err.name === 'CastError') {
+      next(new BadRequest('Переданы неверные данные.'));
+    } else {
+      next(err);
+    }
+  });

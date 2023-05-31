@@ -1,108 +1,120 @@
-const httpConstants = require('http2').constants;
+// eslint-disable-next-line import/no-extraneous-dependencies
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const NotFound = require('../errors/NotFound');
+const BadRequest = require('../errors/BadRequest');
+const Conflict = require('../errors/Conflict');
 
-const {
-  HTTP_STATUS_BAD_REQUEST,
-  HTTP_STATUS_NOT_FOUND,
-  HTTP_STATUS_INTERNAL_SERVER_ERROR,
-} = httpConstants;
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
 
-module.exports.findUsers = (req, res) => {
-  User.find({})
-    .then((user) => res.send({ data: user }))
-    .catch(() => {
-      res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, 'fire', { expiresIn: '7d' });
+      res
+        .cookie('jwt', token, {
+          maxAge: 3600000,
+          httpOnly: true,
+          sameSite: true,
+        }).send({ token });
+    })
+    .catch((err) => {
+      next(err);
     });
 };
 
-module.exports.findUserById = (req, res) => {
-  User.findById(req.params.userId)
+module.exports.getUsers = (req, res, next) => {
+  User.find({})
+    .then((user) => res.send({ data: user }))
+    .catch(next);
+};
+
+module.exports.getUser = (req, res, next) => {
+  User.findById(req.user._id)
     .then((user) => {
       if (!user) {
-        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Пользователь не найден' });
-      } else {
-        res.send({ data: user });
+        throw new NotFound('Пользователь не найден.');
       }
+      return res.send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
+        next(new BadRequest('Переданы неверные данные.'));
       } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
+        next(err);
       }
     });
 };
 
-module.exports.createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
+module.exports.createUser = (req, res, next) => {
+  const {
+    name, about, email, avatar,
+  } = req.body;
 
-  User.create({
-    name,
-    about,
-    avatar,
-  })
-    .then((user) => {
-      res.send({ data: user });
+  bcrypt.hash(req.body.password, 10)
+    .then((hash) => {
+      User.create({
+        name, about, avatar, email, password: hash,
+      })
+        .then(() => {
+          res.status(201).send({
+            name, about, avatar, email,
+          });
+        })
+        .catch((err) => {
+          if (err.code === 11000) {
+            next(new Conflict('Пользователь с таким email уже есть.'));
+          } else if (err.name === 'ValidationError') {
+            next(new BadRequest('Переданы неверные данные.'));
+          } else {
+            next(err);
+          }
+        });
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
-      } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
-      }
-    });
+    .catch(next);
 };
 
-module.exports.editUser = (req, res) => {
+module.exports.editUser = (req, res, next) => {
   const { name, about } = req.body;
-
   User.findByIdAndUpdate(
     req.user._id,
     { name, about },
-    {
-      new: true,
-      runValidators: true,
-    },
+    { new: true, runValidators: true },
   )
     .then((user) => {
       if (!user) {
-        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Пользователь не найден' });
-      } else {
-        res.send({ data: user });
+        throw new NotFound('Пользователь не найден.');
       }
+      return res.send(user);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        next(new BadRequest('Переданы неверные данные.'));
       } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
+        next(err);
       }
     });
 };
 
-module.exports.editAvatar = (req, res) => {
+module.exports.editAvatar = (req, res, next) => {
   const { avatar } = req.body;
-
   User.findByIdAndUpdate(
     req.user._id,
     { avatar },
-    {
-      new: true,
-      runValidators: true,
-    },
+    { new: true, runValidators: true },
   )
     .then((user) => {
       if (!user) {
-        res.status(HTTP_STATUS_NOT_FOUND).send({ message: 'Пользователь не найден' });
-      } else {
-        res.send({ data: user });
+        throw new NotFound('Пользователь не найден.');
       }
+      return res.send(user);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(HTTP_STATUS_BAD_REQUEST).send({ message: 'Были переданы неверные данные' });
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        next(new BadRequest('Переданы неверные данные.'));
       } else {
-        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Что-то пошло не так' });
+        next(err);
       }
     });
 };

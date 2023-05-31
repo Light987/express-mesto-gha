@@ -1,32 +1,40 @@
 const express = require('express');
 const mongoose = require('mongoose');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const bodyParser = require('body-parser');
+const { errors } = require('celebrate');
+const cardRoutes = require('./routes/cards');
+const userRoutes = require('./routes/users');
+const { login, createUser } = require('./controllers/users');
+const auth = require('./middlewares/auth');
+const NotFound = require('./errors/NotFound');
+const { loginJoi, createUserJoi } = require('./middlewares/validation');
+const errorCenter = require('./middlewares/errorCenter');
 
-mongoose.set('strictQuery', false);
-
-const app = express();
 const { PORT = 3000 } = process.env;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const app = express();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 mongoose.connect('mongodb://127.0.0.1:27017/mestodb');
 
+app.post('/signin', loginJoi, login);
+app.post('/signup', createUserJoi, createUser);
+
+app.use(auth);
+app.use(userRoutes);
+app.use(cardRoutes);
+app.use(errors());
+
 app.use((req, res, next) => {
-  req.user = {
-    _id: '645f413600e8e306144ad5c8',
-  };
-
-  next();
+  next(new NotFound('Такой страницы нет.'));
 });
 
-app.use('/users', require('./routes/users'));
-app.use('/cards', require('./routes/cards'));
-
-app.use((_, res) => {
-  res.status(404).send({ message: 'Маршрут не найден' });
-});
+app.use(errorCenter);
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`Приложение запускается с порта ${PORT}`);
+  console.log(`App listening on port ${PORT}`);
 });
