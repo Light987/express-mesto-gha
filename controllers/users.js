@@ -1,7 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const bcrypt = require('bcryptjs');
+const userSchema = require('../models/user');
 const NotFound = require('../errors/NotFound');
 const BadRequest = require('../errors/BadRequest');
 const Conflict = require('../errors/Conflict');
@@ -9,7 +8,7 @@ const Conflict = require('../errors/Conflict');
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
-  return User.findUserByCredentials(email, password)
+  return userSchema.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, 'fire', { expiresIn: '7d' });
       res
@@ -25,13 +24,13 @@ module.exports.login = (req, res, next) => {
 };
 
 module.exports.getUsers = (req, res, next) => {
-  User.find({})
-    .then((user) => res.send({ data: user }))
+  userSchema.find({})
+    .then((users) => res.send(users))
     .catch(next);
 };
 
 module.exports.getUser = (req, res, next) => {
-  User.findById(req.user._id)
+  userSchema.findById(req.user._id)
     .then((user) => {
       if (!user) {
         throw new NotFound('Пользователь не найден.');
@@ -49,7 +48,7 @@ module.exports.getUser = (req, res, next) => {
 
 module.exports.getUserId = (req, res, next) => {
   const { userId } = req.params;
-  User.findById(userId)
+  userSchema.findById(userId)
     .then((user) => {
       if (!user) {
         throw new NotFound('Пользователь не найден.');
@@ -72,9 +71,10 @@ module.exports.createUser = (req, res, next) => {
 
   bcrypt.hash(req.body.password, 10)
     .then((hash) => {
-      User.create({
-        name, about, avatar, email, password: hash,
-      })
+      UserSchema
+        .create({
+          name, about, avatar, email, password: hash,
+        })
         .then(() => {
           res.status(201).send({
             name, about, avatar, email,
@@ -84,7 +84,7 @@ module.exports.createUser = (req, res, next) => {
           if (err.code === 11000) {
             next(new Conflict('Пользователь с таким email уже есть.'));
           } else if (err.name === 'ValidationError') {
-            next(new BadRequest('Переданы неверные данные.'));
+            next(new BadRequest('Переданы некорректные данные.'));
           } else {
             next(err);
           }
@@ -93,9 +93,9 @@ module.exports.createUser = (req, res, next) => {
     .catch(next);
 };
 
-module.exports.editUser = (req, res, next) => {
+module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
-  User.findByIdAndUpdate(
+  userSchema.findByIdAndUpdate(
     req.user._id,
     { name, about },
     { new: true, runValidators: true },
@@ -108,16 +108,16 @@ module.exports.editUser = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        next(new BadRequest('Переданы неверные данные.'));
+        next(new BadRequest('Переданы некорректные данные.'));
       } else {
         next(err);
       }
     });
 };
 
-module.exports.editAvatar = (req, res, next) => {
+module.exports.updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
-  User.findByIdAndUpdate(
+  userSchema.findByIdAndUpdate(
     req.user._id,
     { avatar },
     { new: true, runValidators: true },
@@ -130,7 +130,7 @@ module.exports.editAvatar = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        next(new BadRequest('Переданы неверные данные.'));
+        next(new BadRequest('Переданы некорректные данные.'));
       } else {
         next(err);
       }

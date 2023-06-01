@@ -1,8 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 const mongoose = require('mongoose');
 const validator = require('validator');
 
-const Card = new mongoose.Schema(
+const cardSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -42,4 +41,4 @@ const Card = new mongoose.Schema(
   },
 );
 
-module.exports = mongoose.model('card', Card);
+module.exports = mongoose.model('card', cardSchema);
